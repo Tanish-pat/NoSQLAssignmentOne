@@ -118,11 +118,23 @@ public class FragmentClient {
      * TODO: Calculate the average score per department.
      */
     public String getAvgScoreByDept() {
-        try {
-            // Your code here
-            return null;
-
-        } catch (Exception e) {
+        int fragmentId = new Random().nextInt(numFragments);
+        Connection conn = connectionPool.get(fragmentId);
+        String sql =
+            "SELECT c.department, AVG(g.score) AS avg_score " +
+            "FROM Grade g JOIN Course c ON g.course_id = c.course_id " +
+            "GROUP BY c.department";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            List<String> result = new ArrayList<>();
+            while (rs.next()) {
+                result.add(
+                    rs.getString("department") + ":" +
+                    String.format("%.1f", rs.getDouble("avg_score"))
+                );
+            }
+            return String.join(";", result);
+        }catch (Exception e) {
             e.printStackTrace();
             return "ERROR";
         }
@@ -132,10 +144,34 @@ public class FragmentClient {
      * TODO: Find all the students that have taken most number of courses
      */
     public String getAllStudentsWithMostCourses() {
-        try {
-            // Your code here
-            return null;
+        int fragmentId = new Random().nextInt(numFragments);
+        Connection conn = connectionPool.get(fragmentId);
 
+        String maxSql =
+            "SELECT MAX(cnt) AS max_cnt FROM (" +
+            "SELECT COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
+            ") t";
+
+        String studentsSql =
+            "SELECT student_id FROM (" +
+            "SELECT student_id, COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
+            ") t WHERE cnt = ?";
+
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(maxSql)) {
+
+            if (!rs.next()) return "NULL";
+            int max = rs.getInt("max_cnt");
+
+            try (PreparedStatement ps = conn.prepareStatement(studentsSql)) {
+                ps.setInt(1, max);
+                ResultSet rs2 = ps.executeQuery();
+                List<String> students = new ArrayList<>();
+                while (rs2.next()) {
+                    students.add(rs2.getString("student_id"));
+                }
+                return String.join(",", students);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR";
