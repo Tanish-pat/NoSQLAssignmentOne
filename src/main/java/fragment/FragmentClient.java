@@ -1,10 +1,8 @@
 package fragment;
+
 import java.sql.*;
 import java.util.*;
-import java.sql.DriverManager;
-import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.ResultSet;
+
 public class FragmentClient {
 
     private Map<Integer, Connection> connectionPool;
@@ -32,7 +30,7 @@ public class FragmentClient {
             }
             System.out.println("All fragment connections established.");
         } catch (SQLException e) {
-            log.log(Level.SEVERE, "Failed to establish fragment DB connections", e);
+            e.printStackTrace();
         }
     }
 
@@ -43,13 +41,13 @@ public class FragmentClient {
             "INSERT INTO Student(student_id, name, age, email) " +
             "VALUES (?, ?, ?, ?) " ;
         try {
-            PreparedStatement ps = conn.prepareStatement(sql)
+            PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, studentId);
             ps.setString(2, name);
             ps.setInt(3, age);
             ps.setString(4, email);
             ps.executeUpdate();
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,8 +65,7 @@ public class FragmentClient {
             ps.setString(2, courseId);
             ps.setInt(3, score);
             ps.executeUpdate();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -82,29 +79,36 @@ public class FragmentClient {
             ps.setString(2, studentId);
             ps.setString(3, courseId);
             ps.executeUpdate();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     public void deleteStudentFromCourse(String studentId, String courseId) {
-        try {
-	// Your code here:
-        } catch (Exception e) {
+        int fragmentId = router.getFragmentId(studentId);
+        Connection conn = connectionPool.get(fragmentId);
+        String sql = "DELETE FROM Grade WHERE student_id = ? AND course_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, courseId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * TODO: Fetch the student's name and email.
-     */
     public String getStudentProfile(String studentId) {
-        try {
-            // Your code here
-            return null; 
-            
-        } catch (Exception e) {
+        int fragmentId = router.getFragmentId(studentId);
+        Connection conn = connectionPool.get(fragmentId);
+        String sql = "SELECT name, email FROM Student WHERE student_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("name") + "," + rs.getString("email");
+            }
+            return "NULL";
+        } catch (SQLException e) {
             e.printStackTrace();
             return "ERROR";
         }
@@ -140,8 +144,13 @@ public class FragmentClient {
 
     public void closeConnections() {
         for (Connection conn : connectionPool.values()) {
-            if (conn != null && !conn.isClosed()) {
-                conn.close();
+            try {
+                if (conn != null && !conn.isClosed()) {
+                    conn.close();
+                }
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }
