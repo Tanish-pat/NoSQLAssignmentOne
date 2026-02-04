@@ -55,21 +55,35 @@ public class FragmentClient {
         }
     }
 
-    /**
-     * TODO: Route the grade to the correct shard and execute the INSERT.
-     */
     public void insertGrade(String studentId, String courseId, int score) {
-        try {
-            // Your code here
-            
-        } catch (Exception e) {
+        int fragmentId = router.getFragmentId(studentId);
+        Connection conn = connectionPool.get(fragmentId);
+        String sql =
+            "INSERT INTO Grade(student_id, course_id, score) " +
+            "VALUES (?, ?, ?) " +
+            "ON CONFLICT (student_id, course_id) DO NOTHING"; // idempotent
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, courseId);
+            ps.setInt(3, score);
+            ps.executeUpdate();
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
     public void updateGrade(String studentId, String courseId, int newScore) {
-        try {
-		// Your code here:
-        } catch (Exception e) {
+        int fragmentId = router.getFragmentId(studentId);
+        Connection conn = connectionPool.get(fragmentId);
+        String sql = "UPDATE Grade SET score = ? WHERE student_id = ? AND course_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, newScore);
+            ps.setString(2, studentId);
+            ps.setString(3, courseId);
+            ps.executeUpdate();
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
     }
