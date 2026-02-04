@@ -114,9 +114,6 @@ public class FragmentClient {
         }
     }
 
-    /**
-     * TODO: Calculate the average score per department.
-     */
     public String getAvgScoreByDept() {
         int fragmentId = new Random().nextInt(numFragments);
         Connection conn = connectionPool.get(fragmentId);
@@ -125,7 +122,7 @@ public class FragmentClient {
             "FROM Grade g JOIN Course c ON g.course_id = c.course_id " +
             "GROUP BY c.department";
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+            ResultSet rs = stmt.executeQuery(sql)) {
             List<String> result = new ArrayList<>();
             while (rs.next()) {
                 result.add(
@@ -140,27 +137,23 @@ public class FragmentClient {
         }
     }
 
-    /**
-     * TODO: Find all the students that have taken most number of courses
-     */
     public String getAllStudentsWithMostCourses() {
         int fragmentId = new Random().nextInt(numFragments);
         Connection conn = connectionPool.get(fragmentId);
 
-        String maxSql =
-            "SELECT MAX(cnt) AS max_cnt FROM (" +
-            "SELECT COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
-            ") t";
+        String maxSql = "SELECT MAX(cnt) AS max_cnt FROM (" +
+                "SELECT COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
+                ") t";
 
-        String studentsSql =
-            "SELECT student_id FROM (" +
-            "SELECT student_id, COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
-            ") t WHERE cnt = ?";
+        String studentsSql = "SELECT student_id FROM (" +
+                "SELECT student_id, COUNT(*) AS cnt FROM Grade GROUP BY student_id" +
+                ") t WHERE cnt = ?";
 
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(maxSql)) {
+                ResultSet rs = stmt.executeQuery(maxSql)) {
 
-            if (!rs.next()) return "NULL";
+            if (!rs.next())
+                return "NULL";
             int max = rs.getInt("max_cnt");
 
             try (PreparedStatement ps = conn.prepareStatement(studentsSql)) {
@@ -175,6 +168,19 @@ public class FragmentClient {
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR";
+        }
+    }
+
+    public void resetDatabase() {
+        String sql = "TRUNCATE TABLE Grade, Student, Course RESTART IDENTITY CASCADE";
+
+        for (Connection conn : connectionPool.values()) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+            } catch (SQLException e) {
+                System.out.println("resetDatabase failed on one fragment: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
