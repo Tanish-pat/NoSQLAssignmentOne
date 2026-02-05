@@ -32,10 +32,21 @@ public class Driver {
             createFragments();
 
             System.out.println("=== BASELINE RUN (1 FRAGMENT) ===");
+            long startTimeBaseline = System.currentTimeMillis();
             runWorkload(1, BASELINE_OUTPUT);
+            long endTimeBaseline = System.currentTimeMillis();
+            long durationBaseline = endTimeBaseline - startTimeBaseline;
 
             System.out.println("=== DISTRIBUTED RUN (" + NUM_FRAGMENTS + " FRAGMENTS) ===");
+            long startTimeDist = System.currentTimeMillis();
             runWorkload(NUM_FRAGMENTS, DISTRIBUTED_OUTPUT);
+            long endTimeDist = System.currentTimeMillis();
+            long durationDist = endTimeDist - startTimeDist;
+
+            System.out.println("\n\n========== PERFORMANCE SUMMARY ==========");
+            System.out.printf("Baseline Execution Time    : %d ms\n", durationBaseline);
+            System.out.printf("Distributed Execution Time : %d ms\n", durationDist);
+            System.out.println();
 
             calculateAccuracy();
 
